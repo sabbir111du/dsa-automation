@@ -1,0 +1,10 @@
+name = "dsa-a2i-staging"
+main = "dist/worker.js"
+compatibility_date = "2026-11-10"
+
+[vars]
+SUPABASE_URL = "https://umwzdtwmholgnqzzqmab.supabase.co"
+
+# Set SUPABASE_PUBLISHABLE_KEY via 'wrangler secret put SUPABASE_PUBLISHABLE_KEY'
+# or Cloudflare dashboard > Worker > Settings > Variables and Secrets.
+# The publishable key is not a privileged service-role key.
