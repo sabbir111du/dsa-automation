@@ -2,7 +2,7 @@ name: Live Cloudflare staging smoke
 
 on:
   push:
-    branches: [feature/cloudflare-docx-compat]
+    branches: [main, feature/cloudflare-docx-compat]
     paths:
       - 'cloudflare-app/**'
       - '.github/workflows/cloudflare-live-smoke.yml'
