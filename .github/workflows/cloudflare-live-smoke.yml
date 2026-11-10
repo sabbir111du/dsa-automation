@@ -2,10 +2,12 @@ name: Live Cloudflare staging smoke
 
 on:
   push:
-    branches: [main, feature/cloudflare-docx-compat]
+    branches: [main, feature/cloudflare-docx-compat, feature/employee-policy-rates-docx-layout]
     paths:
       - 'cloudflare-app/**'
       - '.github/workflows/cloudflare-live-smoke.yml'
+  pull_request:
+    paths: ['cloudflare-app/**', '.github/workflows/cloudflare-live-smoke.yml']
   workflow_dispatch:
 
 jobs:
@@ -27,6 +29,11 @@ jobs:
           curl --retry 5 --retry-all-errors --max-time 20 -fsS https://dsa-a2i.19122918.xyz/ -o app.html
           grep -q 'DSA Automation' app.html
           grep -q 'Generate DOCX ZIP' app.html
+          grep -q 'name="office_name"' app.html
+          grep -q 'name="dsa_band"' app.html
+          grep -q 'name="travel_band"' app.html
+          grep -q 'name="dsa_area"' app.html
+          grep -q 'Air travel' app.html
           grep -q 'Continue with Google' app.html
       - name: Document generation rejects unauthenticated requests
         shell: bash
