@@ -36,7 +36,8 @@ function setTable(t,rows){
  // Keep original column widths; add consistent internal cell margins for readable printed tables.
  if(result.includes('<w:tblCellMar'))return result;
  const mar='<w:tblCellMar><w:top w:w="75" w:type="dxa"/><w:start w:w="85" w:type="dxa"/><w:bottom w:w="75" w:type="dxa"/><w:end w:w="85" w:type="dxa"/></w:tblCellMar>';
- if(result.includes('<w:tblPr'))return result.replace(/(<w:tblPr(?:\s[^>]*)?>)/,'$1'+mar);
+ if(result.includes('<w:tblLook'))return result.replace(/(<w:tblLook)/,mar+'$1');
+ if(result.includes('</w:tblPr>'))return result.replace('</w:tblPr>',mar+'</w:tblPr>');
  return result;
 }
 function patchXML(xml,trip,traveler,calculations){
