@@ -27,6 +27,7 @@ jobs:
           curl --retry 5 --retry-all-errors --max-time 20 -fsS https://dsa-a2i.19122918.xyz/ -o app.html
           grep -q 'DSA Automation' app.html
           grep -q 'Generate DOCX ZIP' app.html
+          grep -q 'Continue with Google' app.html
       - name: Document generation rejects unauthenticated requests
         shell: bash
         run: |
@@ -37,3 +38,18 @@ jobs:
         run: |
           status=$(curl -s -o /dev/null -w "%{http_code}" https://dsa-a2i.19122918.xyz/internal/docx-smoke)
           test "$status" = "404"
+      - name: Check Google provider status (informational)
+        shell: bash
+        run: |
+          curl -fsS https://dsa-a2i.19122918.xyz/config -o config.json
+          python - <<'PY'
+          import json, urllib.request
+          c=json.load(open('config.json'))
+          req=urllib.request.Request(c['supabaseUrl']+'/auth/v1/settings',headers={'apikey':c['supabaseKey']})
+          try:
+              with urllib.request.urlopen(req,timeout=15) as response:
+                  settings=json.load(response)
+              print('GOOGLE_PROVIDER_ENABLED=' + str(settings.get('external',{}).get('google',False)).lower())
+          except Exception as e:
+              print('GOOGLE_PROVIDER_STATUS_UNAVAILABLE='+type(e).__name__)
+          PY
