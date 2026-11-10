@@ -47,6 +47,9 @@ jobs:
           with ZipFile("demo.docx") as z:
               assert any(x.startswith("word/media/") for x in z.namelist()), "Expected template media"
           assert 'Imrul Hosain' not in all_text, "Sample name leaked into generated document"
+          words=[p.text for p in document.paragraphs if 'Total Amount in Word:' in p.text]
+          assert len(words)==1 and words[0].lower().count('taka')==1, 'Amount in words has duplicate or missing text'
+          assert 'Traveler Signature and Seal' in all_text, 'Signature label removed'
           print('DOCX parsed successfully: ', len(document.tables), 'tables; embedded logo retained.')
           PY
       - name: Confirm generation is not public
