@@ -38,6 +38,8 @@ jobs:
           grep -q 'data-edit-employee' app.html
           grep -q 'seed_initial_employee_directory' app.html
           grep -q 'Continue with Google' app.html
+          grep -q 'https://ibas.finance.gov.bd/Public/DistanceMatrix' app.html
+          grep -q 'class="distanceVerified"' app.html
       - name: Document generation rejects unauthenticated requests
         shell: bash
         run: |
