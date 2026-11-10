@@ -5,6 +5,16 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 function fail(message, status=400){return Response.json({error:message},{status,headers:{'cache-control':'no-store'}})}
 function xmlEsc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+// Rates transcribed from the supplied Bengali DSA/travel allowance schedules.
+// Bands are selected by the administrator; designation text alone must not infer an entitlement.
+const DSA_BANDS={1:{special:6000,other:5000},2:{special:5000,other:4500},3:{special:3000,other:2500},4:{special:2500,other:2000}};
+const TRAVEL_BANDS={1:{air:30,other:18},2:{air:30,other:18},3:{air:30,other:18},4:{air:30,other:18},5:{air:24,other:15},6:{air:null,other:10},7:{air:null,other:8}};
+function policyRates(trip,person){const band=Number(person.dsaBand),travel=Number(person.travelBand),area=trip.dsaArea==='special'?'special':'other',transport=person.transportClass==='air'?'air':'other';
+ const rate=DSA_BANDS[band]?.[area],km=TRAVEL_BANDS[travel]?.[transport];
+ if(person.dsaBand!=null && rate==null)throw Error('Invalid DSA band');
+ if(person.travelBand!=null && km==null)throw Error('Travel category does not allow air travel');
+ return {dsaRate:rate??null,kmRate:km??null};
+}
 function currency(n){return (Math.round((Number(n)+Number.EPSILON)*100)/100).toFixed(2)}
 function num(n, label){n=Number(n);if(!Number.isFinite(n)||n<0||n>1e9)throw Error(label+' must be a valid non-negative number');return n}
 function date(s){if(!/^\d{4}-\d\d-\d\d$/.test(s||''))throw Error('Expected YYYY-MM-DD date');return s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4)}
@@ -19,7 +29,17 @@ function zip(entries){let n=22;const processed=entries.map(e=>({...e,nameBytes:e
 function setCell(c,text){const value=xmlEsc(text);let first=true;if(/<w:t(?:\s[^>]*)?>[\s\S]*?<\/w:t>/.test(c))return c.replace(/<w:t(?:\s[^>]*)?>[\s\S]*?<\/w:t>/g,()=>{if(first){first=false;return '<w:t xml:space="preserve">'+value+'</w:t>'}return '<w:t></w:t>'});return c.replace(/(<w:p(?:\s[^>]*)?>)/, '$1<w:r><w:t>'+value+'</w:t></w:r>')}
 function rowCells(row,values){let idx=0;return row.replace(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g,c=>{const result=idx<values.length?setCell(c,values[idx]):c;idx++;return result})}
 function rowData(t){return [...t.matchAll(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g)].map(m=>m[0])}
-function setTable(t,rows){return t.replace(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g,'__ROW_PLACEHOLDER__').replace(/(?:__ROW_PLACEHOLDER__)+/,()=>rows.join(''))}
+function formatRow(row){if(!row)return '';if(row.includes('<w:trPr'))return row.replace(/(<w:trPr(?:\s[^>]*)?>)/,'$1<w:cantSplit/>');return row.replace(/(<w:tr(?:\s[^>]*)?>)/,'$1<w:trPr><w:cantSplit/></w:trPr>')}
+function setTable(t,rows){
+ const contents=rows.map(formatRow).join('');
+ const result=t.replace(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g,'__ROW_PLACEHOLDER__').replace(/(?:__ROW_PLACEHOLDER__)+/,()=>contents);
+ // Keep original column widths; add consistent internal cell margins for readable printed tables.
+ if(result.includes('<w:tblCellMar'))return result;
+ const mar='<w:tblCellMar><w:top w:w="75" w:type="dxa"/><w:start w:w="85" w:type="dxa"/><w:bottom w:w="75" w:type="dxa"/><w:end w:w="85" w:type="dxa"/></w:tblCellMar>';
+ if(result.includes('<w:tblLook'))return result.replace(/(<w:tblLook)/,mar+'$1');
+ if(result.includes('</w:tblPr>'))return result.replace('</w:tblPr>',mar+'</w:tblPr>');
+ return result;
+}
 function patchXML(xml,trip,traveler,calculations){
  let tableIndex=0;
  return xml.replace(/<w:tbl(?:\s[^>]*)?>[\s\S]*?<\/w:tbl>/g,t=>{
@@ -27,7 +47,7 @@ function patchXML(xml,trip,traveler,calculations){
   if(tableIndex===0){tableIndex++;
    rows[0]=rowCells(rows[0],['Name of Official: '+traveler.name]);
    rows[1]=rowCells(rows[1],['Designation: '+traveler.designation]);
-   rows[2]=rowCells(rows[2],['Team/Office: '+traveler.team]);
+   rows[2]=rowCells(rows[2],['Team: '+(traveler.team||'')+' | Office: '+(traveler.office||'')]);
    rows[3]=rowCells(rows[3],['Purpose of Visit/Program Name: '+trip.purpose]).replace(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g,cell=>{let first=true;return cell.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,p=>{if(first){first=false;return p}return ''})});
    rows[4]=rowCells(rows[4],['Total Number of Days:',String(Number(traveler.fullDays)+Number(traveler.halfDays))]);
    rows[5]=rowCells(rows[5],['Mode of Travel:',trip.mode||'Road']);
@@ -46,7 +66,7 @@ function patchXML(xml,trip,traveler,calculations){
    const dsarows=[];
    if(Number(traveler.fullDays)>0)dsarows.push(rowCells(rows[2],[traveler.fullDays,currency(calculations.rate),'Full',currency(calculations.full),'']));
    if(Number(traveler.halfDays)>0)dsarows.push(rowCells(rows[2],[traveler.halfDays,currency(calculations.rate),'Half',currency(calculations.half),'50%']));
-   const tarows=trip.legs.map(v=>rowCells(rows[9],[date(v.departDate),v.distance,v.mode||'Road',currency(v.kmRate),currency(v.distance*v.kmRate*traveler.multiplier),v.from+'-'+v.to]));
+   const tarows=trip.legs.map(v=>rowCells(rows[9],[date(v.departDate),v.distance,v.mode||'Road',currency(calculations.travelRate??v.kmRate),currency(v.distance*(calculations.travelRate??v.kmRate)*traveler.multiplier),v.from+'-'+v.to]));
    const tail=[rowCells(rows[16],['Total Travel Allowance Claim',currency(calculations.ta)+'/-','']),rowCells(rows[17],['Total DSA and Travel Allowance (C+D) =',currency(calculations.total)+'/-',''])];
    return setTable(t,[...rows.slice(0,2),...dsarows,rowCells(rows[6],['Total DSA',currency(calculations.dsa)+'/-','']),...rows.slice(7,9),...tarows,...tail]);
   }
@@ -54,7 +74,13 @@ function patchXML(xml,trip,traveler,calculations){
   tableIndex++;return t;
  }).replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,p=>p.includes('Total Amount in Word:')?setCell(p,'Total Amount in Word: '+words(calculations.total)):p);
 }
-function calc(trip,person){const rate=num(person.dailyRate,'Daily rate'),full=num(person.fullDays,'Full days'),half=num(person.halfDays,'Half days'),mult=num(person.multiplier,'Mileage multiplier');if(full>365||half>365||mult>10)throw Error('Allowance values outside allowed range');const dsa=Math.round((full+half*.5)*rate*100)/100,ta=Math.round(trip.legs.reduce((a,l)=>a+num(l.distance,'Distance')*num(l.kmRate,'Km rate')*mult,0)*100)/100;return {rate,full:full*rate,half:half*.5*rate,dsa,ta,total:dsa+ta}}
+function calc(trip,person){const policy=policyRates(trip,person),rate=num(policy.dsaRate??person.dailyRate,'Daily rate'),full=num(person.fullDays,'Full days'),half=num(person.halfDays,'Half days'),mult=num(person.multiplier,'Mileage multiplier');
+ if(full>365||half>365||mult>10)throw Error('Allowance values outside allowed range');
+ const dsa=Math.round((full+half*.5)*rate*100)/100;
+ const travelRate=policy.kmRate;
+ const ta=Math.round(trip.legs.reduce((a,l)=>a+num(l.distance,'Distance')*num(travelRate??l.kmRate,'Km rate')*mult,0)*100)/100;
+ return {rate,travelRate,full:full*rate,half:half*.5*rate,dsa,ta,total:dsa+ta}
+}
 async function generateOne(base,trip,person){const c=calc(trip,person);const entries=unpackZIP(base);const j=entries.findIndex(e=>e.name==='word/document.xml');if(j===-1)throw Error('Word template missing document.xml');const old=entries[j],raw=old.method===8?await inflate(old.data):old.data;const xml=patchXML(decoder.decode(raw),trip,person,c);const data=encoder.encode(xml),compressed=await deflate(data);entries[j]={...old,data:compressed,method:8,crc:crc32(data),usize:data.length};return {bytes:zip(entries),totals:c}}
 function safeName(s){return String(s).replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,60)||'traveler'}
 async function authenticated(req,env){const token=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');if(!token)throw Error('Sign in required');const r=await fetch(env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,Authorization:'Bearer '+token}});if(!r.ok)throw Error('Session expired. Sign in again.');return r.json()}
