@@ -44,3 +44,6 @@ if(candidateEntries.some(x=>/Jeyson Jaman Sawan|Jeson Jaman Sawan/i.test(x)))thr
 if(!seedSQL.includes('employee_directory_setup')||!seedSQL.includes('pg_advisory_xact_lock')||!seedSQL.includes('security invoker'))throw Error('One-time owned import protections missing');
 for(const element of ['id="employeeEditor"','id="editEmployeeForm"','data-edit-employee','office_name','seed_initial_employee_directory'])if(!html.includes(element))throw Error('Missing editable directory component '+element);
 console.log('PASS: exactly 18 approved seed records, excluded name absent, editing UI and one-time import available');
+
+for(const marker of ['iBAS++ Distance Matrix','class="distanceVerified"','distance_verified:true','distance_source:\'iBAS++ Distance Matrix\''])if(!html.includes(marker))throw Error('iBAS distance integration missing '+marker);
+console.log('PASS: iBAS distance citation, explicit verification and distance provenance');
