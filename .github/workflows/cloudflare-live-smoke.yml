@@ -1,0 +1,39 @@
+name: Live Cloudflare staging smoke
+
+on:
+  push:
+    branches: [feature/cloudflare-docx-compat]
+    paths:
+      - 'cloudflare-app/**'
+      - '.github/workflows/cloudflare-live-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check HTTPS and application health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 5 --retry-all-errors --retry-delay 4 --max-time 20 -fsS https://dsa-a2i.19122918.xyz/health -o health.json
+          cat health.json
+          python -c 'import json; d=json.load(open("health.json")); assert d["application"]=="dsa-automation" and d["status"]=="ok" and d["databaseConfigured"]'
+      - name: Confirm HTML interface responds
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 5 --retry-all-errors --max-time 20 -fsS https://dsa-a2i.19122918.xyz/ -o app.html
+          grep -q 'DSA Automation' app.html
+          grep -q 'Generate DOCX ZIP' app.html
+      - name: Document generation rejects unauthenticated requests
+        shell: bash
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" -d '{"trip":{"title":"test","purpose":"test","legs":[{}]},"travelers":[{}]}' https://dsa-a2i.19122918.xyz/api/generate)
+          test "$status" = "400" || test "$status" = "401"
+      - name: Public DOCX diagnostic route is disabled
+        shell: bash
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" https://dsa-a2i.19122918.xyz/internal/docx-smoke)
+          test "$status" = "404"

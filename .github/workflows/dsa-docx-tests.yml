@@ -1,0 +1,37 @@
+name: DSA Word document and ZIP regression
+on:
+  push:
+    branches: [main, feature/cloudflare-docx-compat]
+    paths: ['cloudflare-app/**', '.github/workflows/dsa-docx-tests.yml']
+  pull_request:
+    paths: ['cloudflare-app/**']
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node cloudflare-app/test.mjs
+      - name: Check Word output
+        run: |
+          python -m pip install -q python-docx
+          python - <<'PY'
+          from docx import Document
+          from zipfile import ZipFile
+          from pathlib import Path
+          p=Path('cloudflare-app/test-output')
+          with ZipFile(p/'batch.zip') as z:
+              assert len(z.namelist())==3
+          for file,person,total in [('01.docx','Fictional Traveler One','21312'),('02.docx','Fictional Traveler Two','8000')]:
+              d=Document(p/file)
+              text=' '.join(c.text for t in d.tables for r in t.rows for c in r.cells)
+              assert person in text and total in text
+              assert 'Imrul Hosain' not in text
+              amounts=[x.text for x in d.paragraphs if 'Total Amount in Word:' in x.text]
+              assert len(amounts)==1 and amounts[0].lower().count('taka')==1
+              with ZipFile(p/file) as z:
+                  assert any(x.startswith('word/media/') for x in z.namelist())
+          PY
