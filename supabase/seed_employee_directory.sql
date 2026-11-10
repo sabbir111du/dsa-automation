@@ -1,6 +1,6 @@
 -- One-time, per-account import of the 18 approved names (excluding Md. Jeyson/Jeson Jaman Sawan).
 -- Names and designations originate from the user's employee list; categories from the attached
--- DSA and travel allowance schedules. Team and Office are unknown and intentionally blank.
+-- DSA and travel allowance schedules. All pre-filled profiles use Team = Nothi and Office = Aspire to Innovate (a2i) Programme.
 -- A transaction-scoped advisory lock and owner marker make this idempotent across tabs.
 create table if not exists public.employee_directory_setup (
  owner_id uuid primary key references auth.users(id) on delete cascade,
@@ -48,7 +48,7 @@ begin
     ('Jahanara Khatun', 'Young Professional', 3, 6)
  )
  insert into public.employees(owner_id,full_name,designation,team,office_name,dsa_band,travel_band,daily_dsa_rate,km_rate)
- select uid,c.full_name,c.designation,'','',c.dsa_band,c.travel_band,
+ select uid,c.full_name,c.designation,'Nothi','Aspire to Innovate (a2i) Programme',c.dsa_band,c.travel_band,
         case c.dsa_band when 1 then 5000 when 2 then 4500 when 3 then 2500 else 2000 end,
         case c.travel_band when 5 then 15 when 6 then 10 when 7 then 8 else 18 end
  from candidate c
