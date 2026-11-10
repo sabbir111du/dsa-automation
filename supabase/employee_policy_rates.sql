@@ -9,4 +9,4 @@ alter table public.trips
  check (dsa_area in ('special', 'other'));
 alter table public.trip_travelers
  add column if not exists transport_class text not null default 'other'
- check (transport_class in ('car', 'other'));
+ check (transport_class in ('air', 'other', 'car')); -- car retained solely for existing legacy records
