@@ -1,0 +1,9 @@
+[project]
+name = "dsa-cloudflare-compat"
+version = "0.1.0"
+description = "Isolated python-docx compatibility probe for Cloudflare Python Workers"
+requires-python = ">=3.13"
+dependencies = ["python-docx>=1.1,<2"]
+
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk"]
