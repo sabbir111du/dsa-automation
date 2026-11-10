@@ -1,0 +1,35 @@
+name: Live Cloudflare staging smoke
+
+on:
+  push:
+    branches: [feature/cloudflare-docx-compat]
+    paths:
+      - 'cloudflare-app/**'
+      - '.github/workflows/cloudflare-live-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Confirm HTTPS and health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 5 --retry-all-errors --retry-delay 4 --max-time 20 -fsS https://dsa-a2i.19122918.xyz/health -o health.json
+          cat health.json
+          python -c 'import json; d=json.load(open("health.json")); assert d["application"]=="dsa-automation" and d["status"]=="ok"'
+      - name: Confirm UI and DOCX template output
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 4 --retry-all-errors --max-time 45 -fsS https://dsa-a2i.19122918.xyz/ -o app.html
+          grep -q 'Internal Travel Request' app.html
+          curl --retry 2 --retry-all-errors --max-time 60 -fsS https://dsa-a2i.19122918.xyz/internal/docx-smoke -o docx-result.json
+          cat docx-result.json
+          python -c 'import json; d=json.load(open("docx-result.json")); assert d["success"] and d["total"] == 21312 and d["logoRetained"]'
+      - name: Confirm generation is not public
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" -d '{"trip":{"title":"test","purpose":"test","legs":[{}]},"travelers":[{}]}' https://dsa-a2i.19122918.xyz/api/generate)
+          test "$status" = "400" || test "$status" = "401"
