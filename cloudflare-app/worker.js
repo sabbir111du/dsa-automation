@@ -8,11 +8,11 @@ function xmlEsc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;
 // Rates transcribed from the supplied Bengali DSA/travel allowance schedules.
 // Bands are selected by the administrator; designation text alone must not infer an entitlement.
 const DSA_BANDS={1:{special:6000,other:5000},2:{special:5000,other:4500},3:{special:3000,other:2500},4:{special:2500,other:2000}};
-const TRAVEL_BANDS={1:{car:30,other:18},2:{car:30,other:18},3:{car:30,other:18},4:{car:30,other:18},5:{car:24,other:15},6:{car:null,other:10},7:{car:null,other:8}};
-function policyRates(trip,person){const band=Number(person.dsaBand),travel=Number(person.travelBand),area=trip.dsaArea==='special'?'special':'other',transport=person.transportClass==='car'?'car':'other';
+const TRAVEL_BANDS={1:{air:30,other:18},2:{air:30,other:18},3:{air:30,other:18},4:{air:30,other:18},5:{air:24,other:15},6:{air:null,other:10},7:{air:null,other:8}};
+function policyRates(trip,person){const band=Number(person.dsaBand),travel=Number(person.travelBand),area=trip.dsaArea==='special'?'special':'other',transport=person.transportClass==='air'?'air':'other';
  const rate=DSA_BANDS[band]?.[area],km=TRAVEL_BANDS[travel]?.[transport];
  if(person.dsaBand!=null && rate==null)throw Error('Invalid DSA band');
- if(person.travelBand!=null && km==null)throw Error('Travel category does not allow this transport type');
+ if(person.travelBand!=null && km==null)throw Error('Travel category does not allow air travel');
  return {dsaRate:rate??null,kmRate:km??null};
 }
 function currency(n){return (Math.round((Number(n)+Number.EPSILON)*100)/100).toFixed(2)}
