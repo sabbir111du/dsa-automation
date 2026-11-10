@@ -28,3 +28,11 @@ const eligible=worker.calc(policyTrip,p4);
 if(eligible.rate!==6000||eligible.travelRate!==24)throw Error('Air travel allowance mismatch');
 try{worker.calc(policyTrip,{...p3,transportClass:'air'});throw Error('Invalid air rate accepted')}catch(e){if(e.message==='Invalid air rate accepted')throw e}
 console.log('PASS: 4 DSA bands, transport eligibility and location-specific rates');
+
+const html=await readFile(new URL('./index.html',import.meta.url),'utf8');
+const jsMatch=html.match(/<script>([\s\S]*?)<\/script>/);
+if(!jsMatch)throw Error('No inline application script');
+const {Script}=await import('node:vm');
+new Script(jsMatch[1],{filename:'dsa-app-inline.js'});
+for(const label of ['name="office_name"','name="dsa_band"','name="travel_band"','name="dsa_area"','Continue with Google'])if(!html.includes(label))throw Error('Missing required UI input '+label);
+console.log('PASS: browser JS syntax and employee/area inputs');
