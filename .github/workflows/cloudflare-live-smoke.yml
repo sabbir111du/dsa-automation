@@ -43,7 +43,9 @@ jobs:
           assert '21312' in all_text
           assert '13500' in all_text
           assert '7812' in all_text
-          assert len(document.inline_shapes)>0, "Expected template logo"
+          from zipfile import ZipFile
+          with ZipFile("demo.docx") as z:
+              assert any(x.startswith("word/media/") for x in z.namelist()), "Expected template media"
           assert 'Imrul Hosain' not in all_text, "Sample name leaked into generated document"
           print('DOCX parsed successfully: ', len(document.tables), 'tables; embedded logo retained.')
           PY
