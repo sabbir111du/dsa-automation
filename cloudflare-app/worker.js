@@ -28,7 +28,7 @@ function patchXML(xml,trip,traveler,calculations){
    rows[0]=rowCells(rows[0],['Name of Official: '+traveler.name]);
    rows[1]=rowCells(rows[1],['Designation: '+traveler.designation]);
    rows[2]=rowCells(rows[2],['Team/Office: '+traveler.team]);
-   rows[3]=rowCells(rows[3],['Purpose of Visit/Program Name: '+trip.purpose]);
+   rows[3]=rowCells(rows[3],['Purpose of Visit/Program Name: '+trip.purpose]).replace(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g,cell=>{let first=true;return cell.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,p=>{if(first){first=false;return p}return ''})});
    rows[4]=rowCells(rows[4],['Total Number of Days:',String(Number(traveler.fullDays)+Number(traveler.halfDays))]);
    rows[5]=rowCells(rows[5],['Mode of Travel:',trip.mode||'Road']);
    rows[6]=rowCells(rows[6],['Total DSA',currency(calculations.dsa)]);
@@ -50,9 +50,9 @@ function patchXML(xml,trip,traveler,calculations){
    const tail=[rowCells(rows[16],['Total Travel Allowance Claim',currency(calculations.ta)+'/-','']),rowCells(rows[17],['Total DSA and Travel Allowance (C+D) =',currency(calculations.total)+'/-',''])];
    return setTable(t,[...rows.slice(0,2),...dsarows,rowCells(rows[6],['Total DSA',currency(calculations.dsa)+'/-','']),...rows.slice(7,9),...tarows,...tail]);
   }
-  if(tableIndex===3){tableIndex++;rows[0]=rowCells(rows[0],['Traveler Signature and Seal with date: '+traveler.name+', '+traveler.designation+', '+traveler.team,'Team Leader’s Signature and Seal with date']);return setTable(t,rows)}
+  if(tableIndex===3){tableIndex++;rows[0]=rows[0].replace(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/,cell=>cell.replace(/(<w:t(?:\s[^>]*)?>)Imrul Hosain(<\/w:t>)/,(_,a,b)=>a+xmlEsc(traveler.name)+b).replace(/(<w:t(?:\s[^>]*)?>)Consultant, (<\/w:t>)/,(_,a,b)=>a+xmlEsc(traveler.designation+', ')+b).replace(/(<w:t(?:\s[^>]*)?>)Nothi(<\/w:t>)/,(_,a,b)=>a+xmlEsc(traveler.team)+b));return setTable(t,rows)}
   tableIndex++;return t;
- }).replace(/Total Amount in Word:[^<]*/g, 'Total Amount in Word: '+xmlEsc(words(calculations.total)));
+ }).replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,p=>p.includes('Total Amount in Word:')?setCell(p,'Total Amount in Word: '+words(calculations.total)):p);
 }
 function calc(trip,person){const rate=num(person.dailyRate,'Daily rate'),full=num(person.fullDays,'Full days'),half=num(person.halfDays,'Half days'),mult=num(person.multiplier,'Mileage multiplier');if(full>365||half>365||mult>10)throw Error('Allowance values outside allowed range');const dsa=Math.round((full+half*.5)*rate*100)/100,ta=Math.round(trip.legs.reduce((a,l)=>a+num(l.distance,'Distance')*num(l.kmRate,'Km rate')*mult,0)*100)/100;return {rate,full:full*rate,half:half*.5*rate,dsa,ta,total:dsa+ta}}
 async function generateOne(base,trip,person){const c=calc(trip,person);const entries=unpackZIP(base);const j=entries.findIndex(e=>e.name==='word/document.xml');if(j===-1)throw Error('Word template missing document.xml');const old=entries[j],raw=old.method===8?await inflate(old.data):old.data;const xml=patchXML(decoder.decode(raw),trip,person,c);const data=encoder.encode(xml),compressed=await deflate(data);entries[j]={...old,data:compressed,method:8,crc:crc32(data),usize:data.length};return {bytes:zip(entries),totals:c}}
