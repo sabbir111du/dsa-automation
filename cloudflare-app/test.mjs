@@ -23,8 +23,8 @@ if(policyGenerated.totals.rate!==3000||policyGenerated.totals.travelRate!==10||p
 await writeFile(new URL('./test-output/03.docx',import.meta.url),policyGenerated.bytes);
 const other=worker.calc({...trip,dsaArea:'other'},p3);
 if(other.rate!==2500||other.total!==10590)throw Error('Other area rate mismatch');
-const p4={...p3,dsaBand:1,travelBand:5,transportClass:'car',dailyRate:0,fullDays:1,halfDays:0};
+const p4={...p3,dsaBand:1,travelBand:5,transportClass:'air',dailyRate:0,fullDays:1,halfDays:0};
 const eligible=worker.calc(policyTrip,p4);
-if(eligible.rate!==6000||eligible.travelRate!==24)throw Error('Car entitlement mismatch');
-try{worker.calc(policyTrip,{...p3,transportClass:'car'});throw Error('Invalid car rate accepted')}catch(e){if(e.message==='Invalid car rate accepted')throw e}
+if(eligible.rate!==6000||eligible.travelRate!==24)throw Error('Air travel allowance mismatch');
+try{worker.calc(policyTrip,{...p3,transportClass:'air'});throw Error('Invalid air rate accepted')}catch(e){if(e.message==='Invalid air rate accepted')throw e}
 console.log('PASS: 4 DSA bands, transport eligibility and location-specific rates');
