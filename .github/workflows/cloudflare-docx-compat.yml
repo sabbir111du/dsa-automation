@@ -1,0 +1,46 @@
+name: Cloudflare DOCX compatibility
+
+on:
+  push:
+    branches:
+      - feature/cloudflare-docx-compat
+  pull_request:
+    paths:
+      - 'cloudflare-compat/**'
+      - '.github/workflows/cloudflare-docx-compat.yml'
+  workflow_dispatch:
+
+jobs:
+  python-worker-docx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: cloudflare-compat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: astral-sh/setup-uv@v6
+      - name: Resolve Cloudflare Python packages
+        run: uv sync
+      - name: Run Worker and assert generated DOCX can be reopened
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run pywrangler dev --ip 127.0.0.1 --port 8787 > /tmp/dsa-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true; cat /tmp/dsa-worker.log' EXIT
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -fsS --max-time 3 http://127.0.0.1:8787/ > /tmp/dsa-docx-response.json; then
+              if python -c "import json; d=json.load(open('/tmp/dsa-docx-response.json')); assert d['success'] is True and d['reopened_total']=='21312' and d['docx_bytes']>1000"; then
+                ok=1
+                break
+              fi
+            fi
+            sleep 2
+          done
+          cat /tmp/dsa-docx-response.json 2>/dev/null || true
+          test "$ok" -eq 1
