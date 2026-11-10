@@ -2,7 +2,7 @@ name: Live Cloudflare staging smoke
 
 on:
   push:
-    branches: [main, feature/cloudflare-docx-compat, feature/employee-policy-rates-docx-layout]
+    branches: [main, feature/cloudflare-docx-compat, feature/employee-policy-rates-docx-layout, feature/prefilled-editable-employee-directory]
     paths:
       - 'cloudflare-app/**'
       - '.github/workflows/cloudflare-live-smoke.yml'
@@ -34,6 +34,9 @@ jobs:
           grep -q 'name="travel_band"' app.html
           grep -q 'name="dsa_area"' app.html
           grep -q 'Air travel' app.html
+          grep -q 'id="employeeEditor"' app.html
+          grep -q 'data-edit-employee' app.html
+          grep -q 'seed_initial_employee_directory' app.html
           grep -q 'Continue with Google' app.html
       - name: Document generation rejects unauthenticated requests
         shell: bash
@@ -60,3 +63,11 @@ jobs:
           except Exception as e:
               print('GOOGLE_PROVIDER_STATUS_UNAVAILABLE='+type(e).__name__)
           PY
+      - name: Initial employee import requires sign-in
+        shell: bash
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H 'Content-Type: application/json' \
+            -X POST -d '{}' \
+            https://umwzdtwmholgnqzzqmab.supabase.co/rest/v1/rpc/seed_initial_employee_directory)
+          test "$status" = "401" || test "$status" = "403"
