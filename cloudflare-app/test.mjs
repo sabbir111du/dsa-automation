@@ -1,6 +1,6 @@
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 const js=await readFile(new URL('./worker.js',import.meta.url),'utf8');
-const worker=await import('data:text/javascript;base64,'+Buffer.from(js+'\nexport {generateOne,unpackZIP,zip,crc32};').toString('base64'));
+const worker=await import('data:text/javascript;base64,'+Buffer.from(js+'\nexport {generateOne,unpackZIP,zip,crc32,policyRates,calc};').toString('base64'));
 const base=new Uint8Array(await readFile(new URL('../assets/original_template.docx',import.meta.url)));
 const trip={title:'Fictional training',purpose:'Demonstration of DSA calculation',mode:'Road',organizer:'a2i',
 itinerary:[{date:'2026-10-17',location:'Chuadanga',activity:'Training'},{date:'2026-10-18',location:'Chuadanga',activity:'Training'}],
@@ -15,3 +15,16 @@ const csv=new TextEncoder().encode('Name,Total\nFictional Traveler One,21312\nFi
 entries.push({name:'claim_summary.csv',method:0,crc:worker.crc32(csv),usize:csv.length,data:csv});
 await writeFile(new URL('./test-output/batch.zip',import.meta.url),worker.zip(entries));
 console.log('PASS: two individual DOCX and one batch ZIP');
+
+const policyTrip={...trip,dsaArea:'special'};
+const p3={name:'Fictional Policy Traveler',designation:'Young Professional',team:'Project',office:'a2i',dsaBand:3,travelBand:6,transportClass:'other',dailyRate:0,fullDays:2,halfDays:1,multiplier:1};
+const policyGenerated=await worker.generateOne(base,policyTrip,p3);
+if(policyGenerated.totals.rate!==3000||policyGenerated.totals.travelRate!==10||policyGenerated.totals.dsa!==7500||policyGenerated.totals.ta!==4340||policyGenerated.totals.total!==11840)throw Error('Policy schedule calculation mismatch');
+await writeFile(new URL('./test-output/03.docx',import.meta.url),policyGenerated.bytes);
+const other=worker.calc({...trip,dsaArea:'other'},p3);
+if(other.rate!==2500||other.total!==10590)throw Error('Other area rate mismatch');
+const p4={...p3,dsaBand:1,travelBand:5,transportClass:'car',dailyRate:0,fullDays:1,halfDays:0};
+const eligible=worker.calc(policyTrip,p4);
+if(eligible.rate!==6000||eligible.travelRate!==24)throw Error('Car entitlement mismatch');
+try{worker.calc(policyTrip,{...p3,transportClass:'car'});throw Error('Invalid car rate accepted')}catch(e){if(e.message==='Invalid car rate accepted')throw e}
+console.log('PASS: 4 DSA bands, transport eligibility and location-specific rates');
