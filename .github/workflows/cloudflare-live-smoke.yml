@@ -29,6 +29,24 @@ jobs:
           curl --retry 2 --retry-all-errors --max-time 60 -fsS https://dsa-a2i.19122918.xyz/internal/docx-smoke -o docx-result.json
           cat docx-result.json
           python -c 'import json; d=json.load(open("docx-result.json")); assert d["success"] and d["total"] == 21312 and d["logoRetained"]'
+      - name: Validate the Word file with python-docx
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 3 --retry-all-errors --max-time 70 -fsS 'https://dsa-a2i.19122918.xyz/internal/docx-smoke?download=1' -o demo.docx
+          python -m pip install -q python-docx
+          python - <<'PY'
+          from docx import Document
+          document=Document('demo.docx')
+          all_text=' '.join(c.text for table in document.tables for row in table.rows for c in row.cells)
+          assert 'Fictional Demo Traveler' in all_text
+          assert '21312' in all_text
+          assert '13500' in all_text
+          assert '7812' in all_text
+          assert len(document.inline_shapes)>0, "Expected template logo"
+          assert 'Imrul Hosain' not in all_text, "Sample name leaked into generated document"
+          print('DOCX parsed successfully: ', len(document.tables), 'tables; embedded logo retained.')
+          PY
       - name: Confirm generation is not public
         run: |
           status=$(curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" -d '{"trip":{"title":"test","purpose":"test","legs":[{}]},"travelers":[{}]}' https://dsa-a2i.19122918.xyz/api/generate)
