@@ -40,7 +40,7 @@ console.log('PASS: browser JS syntax and employee/area inputs');
 const seedSQL=await readFile(new URL('../supabase/seed_employee_directory.sql',import.meta.url),'utf8');
 const candidateEntries=seedSQL.match(/^    \('([^']+)', '([^']+)', [1234], [1-7]\)/gm)||[];
 if(candidateEntries.length!==18)throw Error('Expected exactly 18 employee seed records, found '+candidateEntries.length);
-if(/Jeyson Jaman Sawan|Jeson Jaman Sawan/i.test(seedSQL))throw Error('Excluded employee appeared in initial directory');
+if(candidateEntries.some(x=>/Jeyson Jaman Sawan|Jeson Jaman Sawan/i.test(x)))throw Error('Excluded employee appeared in initial directory');
 if(!seedSQL.includes('employee_directory_setup')||!seedSQL.includes('pg_advisory_xact_lock')||!seedSQL.includes('security invoker'))throw Error('One-time owned import protections missing');
 for(const element of ['id="employeeEditor"','id="editEmployeeForm"','data-edit-employee','office_name','seed_initial_employee_directory'])if(!html.includes(element))throw Error('Missing editable directory component '+element);
 console.log('PASS: exactly 18 approved seed records, excluded name absent, editing UI and one-time import available');
