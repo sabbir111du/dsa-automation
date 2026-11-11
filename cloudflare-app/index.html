@@ -190,18 +190,19 @@ $('genTrip').onchange=renderTravelers;
 function renderTravelers(){
  const id=$('genTrip').value,trip=trips.find(t=>t.id===id),area=trip?.dsa_area||'other',current=assignments.filter(a=>a.trip_id===id),term=$('travelerSearch').value.trim().toLocaleLowerCase(),visible=orderedEmployees(employees).filter(p=>[p.full_name,p.designation,p.team,p.office_name].some(v=>String(v||'').toLocaleLowerCase().includes(term)));
  $('travelerResultCount').textContent=id?visible.length+' of '+employees.length+' employees shown':'Select a trip to choose travelers';
- $('travelerRows').innerHTML=id?visible.map(p=>{
+ $('travelerRows').innerHTML=id?orderedEmployees(employees).map(p=>{
   const assigned=current.find(a=>a.employee_id===p.id);
   const rate=p.dsa_band?dsaRate(p,area):0;
   const transport=assigned?.transport_class||'other',airAllowed=!!p.travel_band&&TRAVEL_BANDS[p.travel_band]?.air!=null;
   const selection='<select class="transport"><option value="other" '+(transport==='other'?'selected':'')+'>Other (৳'+kmRate(p,'other')+'/km)</option>'+(airAllowed?'<option value="air" '+(transport==='air'?'selected':'')+'>Air travel (৳'+kmRate(p,'air')+'/km)</option>':'')+'</select>';
   return '<tr data-person="'+esc(p.id)+'"><td><input type="checkbox" '+(assigned?'checked':'')+'></td><td><b>'+esc(p.full_name)+'</b><div class="hint">'+esc(p.designation)+' · '+esc(p.office_name||p.team)+'</div></td><td><input type="number" class="rate" min="0" step=".01" value="'+rate+'" '+(p.dsa_band?'readonly':'')+' title="'+(area==='special'?'Special':'Other')+' area"></td><td><input type="number" class="full" min="0" max="365" step=".5" value="'+esc(assigned?.approved_full_days??1)+'"></td><td><input type="number" class="half" min="0" max="365" step=".5" value="'+esc(assigned?.approved_half_days??0)+'"></td><td>'+selection+'</td><td><input type="number" class="mult" min="0" max="10" step=".1" value="'+esc(assigned?.ta_multiplier??1)+'"></td></tr>';
  }).join(''):'<tr><td colspan="7">Select a trip first</td></tr>';
- updateClaimPreview();
+ filterTravelerRows();updateClaimPreview();
 }
-$('travelerSearch').addEventListener('input',renderTravelers);
-$('selectVisibleTravelers').onclick=()=>{document.querySelectorAll('#travelerRows [data-person] input[type="checkbox"]').forEach(c=>c.checked=true);updateClaimPreview()};
-$('clearVisibleTravelers').onclick=()=>{document.querySelectorAll('#travelerRows [data-person] input[type="checkbox"]').forEach(c=>c.checked=false);updateClaimPreview()};
+function filterTravelerRows(){const term=$('travelerSearch').value.trim().toLocaleLowerCase();let count=0;document.querySelectorAll('#travelerRows [data-person]').forEach(r=>{const p=employees.find(x=>x.id===r.dataset.person);const shown=!!p&&[p.full_name,p.designation,p.team,p.office_name].some(v=>String(v||'').toLocaleLowerCase().includes(term));r.hidden=!shown;r.style.display=shown?'':'none';if(shown)count++});$('travelerResultCount').textContent=$('genTrip').value?count+' of '+employees.length+' employees shown':'Select a trip to choose travelers'}
+$('travelerSearch').addEventListener('input',filterTravelerRows);
+$('selectVisibleTravelers').onclick=()=>{document.querySelectorAll('#travelerRows [data-person]:not([hidden]) input[type="checkbox"]').forEach(c=>c.checked=true);updateClaimPreview()};
+$('clearVisibleTravelers').onclick=()=>{document.querySelectorAll('#travelerRows [data-person]:not([hidden]) input[type="checkbox"]').forEach(c=>c.checked=false);updateClaimPreview()};
 $('travelerRows').addEventListener('input',updateClaimPreview);
 $('travelerRows').addEventListener('change',updateClaimPreview);
 function getVisibleSelectedTravelers(){return [...document.querySelectorAll('#travelerRows [data-person]')].filter(r=>r.querySelector('input[type="checkbox"]').checked).map(r=>{const emp=employees.find(e=>e.id===r.dataset.person);return {id:emp.id,name:emp.full_name,designation:emp.designation,team:emp.team,office:emp.office_name||'',dsaBand:emp.dsa_band,travelBand:emp.travel_band,transportClass:r.querySelector('.transport').value,dailyRate:Number(r.querySelector('.rate').value),fullDays:Number(r.querySelector('.full').value),halfDays:Number(r.querySelector('.half').value),multiplier:Number(r.querySelector('.mult').value)}})}
