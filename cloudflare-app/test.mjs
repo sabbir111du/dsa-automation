@@ -95,3 +95,21 @@ for(const marker of ['Travel claims, made simpler.','class="process"','class="he
 const originalTemplateBytes=await readFile(new URL('../assets/original_template.docx',import.meta.url));
 if(originalTemplateBytes.length<1000)throw Error('Official template unavailable');
 console.log('PASS: Workspace 2.0 UI renders with existing document workflow and template');
+
+const mixedTrip={...trip,legs:[{...trip.legs[0],id:'leg-one',mode:'Air'},{...trip.legs[1],id:'leg-two',mode:'Road'}]};
+const mixedTraveler={...people[0],legModes:{'leg-one':'air','leg-two':'other'}};
+const mixed=worker.calc(mixedTrip,mixedTraveler);
+if(mixed.dsa!==13500||mixed.ta!==10416||mixed.total!==23916)throw Error('Expected 217 × 30 + 217 × 18 mixed allowance plus 3 full DSA days');
+if(mixed.travelRows[0].rate!==30||mixed.travelRows[1].rate!==18||mixed.travelRows[0].modeLabel!=='Air'||mixed.travelRows[1].modeLabel!=='Road')throw Error('Per-leg rate or method mapping failed');
+const reverse=worker.calc(mixedTrip,{...mixedTraveler,legModes:{'leg-one':'other','leg-two':'air'}});
+if(reverse.ta!==10416||reverse.travelRows[0].rate!==18||reverse.travelRows[1].rate!==30)throw Error('Reverse mixed journey failed');
+const otherOnly=worker.calc(mixedTrip,{...mixedTraveler,legModes:{'leg-one':'other','leg-two':'other'}});
+if(otherOnly.ta!==7812)throw Error('Other-only journey changed');
+const mixedDoc=await worker.generateOne(base,mixedTrip,mixedTraveler);
+await writeFile(new URL('./test-output/04-mixed.docx',import.meta.url),mixedDoc.bytes);
+const mixedEntry=worker.unpackZIP(mixedDoc.bytes).find(e=>e.name==='word/document.xml');
+const mixedXML=(mixedEntry.method===8?inflateRawSync(mixedEntry.data):Buffer.from(mixedEntry.data)).toString('utf8');
+for(const expected of ['Mixed (Air / Other)','Air','Road','30.00','18.00','23916'])if(!mixedXML.includes(expected))throw Error('Mixed-method Word document missing '+expected);
+try{worker.calc(mixedTrip,{...people[0],travelBand:6,legModes:{'leg-one':'air','leg-two':'other'}});throw Error('Unapproved air travel was accepted')}catch(e){if(e.message==='Unapproved air travel was accepted')throw e}
+if(!html.includes('class="leg-method"')||!html.includes('leg_modes:p.legModes')||!html.includes('name="leg_mode"'))throw Error('Missing per-employee or per-leg method selection/persistence');
+console.log('PASS: mixed outbound Air and return Road rates, reverse journey, DOCX and entitlement checks');
