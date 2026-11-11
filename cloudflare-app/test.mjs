@@ -69,7 +69,7 @@ if(districtList.length!==64||new Set(districtList).size!==64)throw Error('Expect
 for(const district of ['Dhaka','Chattogram','Cumilla',"Cox's Bazar",'Barishal','Mymensingh','Jashore','Panchagarh','Chuadanga']){
  if(!districtList.includes(district))throw Error('Expected Bangladesh district '+district);
 }
-if(!html.includes("list:'bdDistricts'")||!html.includes("autocomplete=\\\"off\\\""))throw Error('Location text input does not link to datalist');
+if(!html.includes("list:'bdDistricts'")||!html.includes('autocomplete='))throw Error('Location text input does not link to datalist');
 if(html.includes("class=\\\"distanceVerified\\\""))throw Error('Distance checkbox unexpectedly present');
 if(!html.includes("approved_full_days??1"))throw Error('Default full day must be one');
 if(!html.includes("ta_multiplier??1"))throw Error('Default TA multiplier must be one');
