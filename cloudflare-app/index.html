@@ -186,6 +186,20 @@ function addLeg(){const el=input('leg',[{label:'From location',name:'from_city',
 $('addItinerary').onclick=addItinerary;$('addLeg').onclick=addLeg;addItinerary();addLeg();addLeg();
 const groupData=sel=>[...document.querySelectorAll(sel)].map(el=>Object.fromEntries(new FormData((()=>{const form=document.createElement('form');el.querySelectorAll('input').forEach(i=>{const x=i.cloneNode();form.appendChild(x)});return form})()))); // temporary clones preserve edited values below
 function rowsFrom(sel){return [...document.querySelectorAll(sel)].map(el=>Object.fromEntries([...el.querySelectorAll('input')].map(i=>[i.name,i.value])))}
+function duplicateTrip(id){
+ const original=trips.find(t=>t.id===id);if(!original)return notify('Trip not found',true);
+ const form=$('tripForm');form.reset();
+ for(const field of ['destination','start_date','end_date','travel_organizer','mode','purpose','dsa_area'])if(form.elements[field])form.elements[field].value=original[field]??'';
+ form.elements.title.value=original.title+' (copy)';
+ $('itineraryEntries').replaceChildren();$('travelEntries').replaceChildren();
+ const it=itineraries.filter(x=>x.trip_id===id).sort((a,b)=>a.visit_date.localeCompare(b.visit_date));
+ for(const a of it){addItinerary();const e=$('itineraryEntries').lastElementChild;for(const [key,value] of Object.entries({date:a.visit_date,location:a.location,activity:a.activity})){const input=e.querySelector('[name="'+key+'"]');if(input)input.value=value??''}}
+ const travel=legs.filter(x=>x.trip_id===id).sort((a,b)=>a.depart_date.localeCompare(b.depart_date));
+ for(const a of travel){addLeg();const e=$('travelEntries').lastElementChild;for(const [key,value] of Object.entries({from_city:a.from_city,to_city:a.to_city,depart_date:a.depart_date,depart_time:String(a.depart_time||'').slice(0,5),arrive_date:a.arrive_date,arrive_time:String(a.arrive_time||'').slice(0,5),distance_km:a.distance_km})){const input=e.querySelector('[name="'+key+'"]');if(input)input.value=value??''}}
+ if(!it.length)addItinerary();if(!travel.length)addLeg();
+ page('trips');form.elements.title.focus();window.scrollTo({top:0,behavior:'smooth'});
+ notify('Trip copied into the form. Review dates and details, then Save Trip to create a separate record.');
+}
 $('tripForm').onsubmit=async e=>{e.preventDefault();const all=Object.fromEntries(new FormData(e.target));const info=Object.fromEntries(['title','destination','start_date','end_date','travel_organizer','mode','purpose','dsa_area'].map(k=>[k,all[k]]));const its=rowsFrom('.itinerary'),legsRows=rowsFrom('.leg');if(!legsRows.length)return notify('At least one travel leg is required',true);if(info.end_date<info.start_date)return notify('End date precedes start date',true);let record=null;try{const created=await db('trips','POST',{...info,owner_id:session.user.id});record=created[0];if(its.length)await db('trip_itinerary','POST',its.map(v=>({owner_id:session.user.id,trip_id:record.id,visit_date:v.date,location:v.location,activity:v.activity})));await db('travel_legs','POST',legsRows.map(v=>({owner_id:session.user.id,trip_id:record.id,from_city:v.from_city,to_city:v.to_city,depart_date:v.depart_date,depart_time:v.depart_time||null,arrive_date:v.arrive_date,arrive_time:v.arrive_time||null,mode:info.mode,distance_km:v.distance_km,distance_source:'manual (iBAS reference available)',distance_verified:false})));await reload();page('generate');$('genTrip').value=record.id;renderTravelers();notify('Trip created')}catch(err){notify(err.message,true)}};
 $('genTrip').onchange=renderTravelers;
 function renderTravelers(){
