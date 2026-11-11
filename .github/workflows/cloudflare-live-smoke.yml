@@ -43,6 +43,12 @@ jobs:
           grep -q "list:'bdDistricts'" app.html
           grep -q 'employee-hierarchy' app.html
           grep -q 'approved_full_days??1' app.html
+          grep -q 'id="employeeSearch"' app.html
+          grep -q 'id="employeeCategory"' app.html
+          grep -q 'id="travelerSearch"' app.html
+          grep -q 'id="claimPreview"' app.html
+          grep -q 'function duplicateTrip(id)' app.html
+          grep -q 'function updateClaimPreview()' app.html
           grep -q 'isActiveTrip' app.html
           if grep -q 'distanceVerified' app.html; then echo 'Old mandatory distance confirmation still present'; exit 1; fi
           if grep -q 'Rate / KM BDT' app.html; then echo 'Manual travel rate field still present'; exit 1; fi
