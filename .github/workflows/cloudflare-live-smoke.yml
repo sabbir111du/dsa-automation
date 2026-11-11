@@ -40,6 +40,8 @@ jobs:
           grep -q 'Continue with Google' app.html
           grep -q 'https://ibas.finance.gov.bd/Public/DistanceMatrix' app.html
           grep -q 'class="distanceVerified"' app.html
+          if grep -q 'Rate / KM BDT' app.html; then echo 'Manual travel rate field still present'; exit 1; fi
+          grep -q 'iBAS-verified distance (km)' app.html
       - name: Document generation rejects unauthenticated requests
         shell: bash
         run: |

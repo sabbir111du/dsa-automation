@@ -25,7 +25,7 @@ jobs:
           p=Path('cloudflare-app/test-output')
           with ZipFile(p/'batch.zip') as z:
               assert len(z.namelist())==3
-          for file,person,total in [('01.docx','Fictional Traveler One','21312'),('02.docx','Fictional Traveler Two','8000')]:
+          for file,person,total in [('01.docx','Fictional Traveler One','21312'),('02.docx','Fictional Traveler Two','6250')]:
               d=Document(p/file)
               text=' '.join(c.text for t in d.tables for r in t.rows for c in r.cells)
               assert person in text and total in text
