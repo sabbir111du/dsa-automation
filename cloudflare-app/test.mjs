@@ -1,6 +1,6 @@
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 const js=await readFile(new URL('./worker.js',import.meta.url),'utf8');
-const worker=await import('data:text/javascript;base64,'+Buffer.from(js+'\nexport {generateOne,unpackZIP,zip,crc32,policyRates,calc};').toString('base64'));
+const worker=await import('data:text/javascript;base64,'+Buffer.from(js+'\nexport {generateOne,unpackZIP,zip,crc32,policyRates,calc,time12};').toString('base64'));
 const base=new Uint8Array(await readFile(new URL('../assets/original_template.docx',import.meta.url)));
 const trip={title:'Fictional training',purpose:'Demonstration of DSA calculation',mode:'Road',organizer:'a2i',
 itinerary:[{date:'2026-10-17',location:'Chuadanga',activity:'Training'},{date:'2026-10-18',location:'Chuadanga',activity:'Training'}],
