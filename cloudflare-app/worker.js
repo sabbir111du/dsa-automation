@@ -79,7 +79,7 @@ function patchXML(xml,trip,traveler,calculations){
    rows[2]=rowCells(rows[2],['Team: '+(traveler.team||'')+' | Office: '+(traveler.office||'')]);
    rows[3]=rowCells(rows[3],['Purpose of Visit/Program Name: '+trip.purpose]).replace(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g,cell=>{let first=true;return cell.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,p=>{if(first){first=false;return p}return ''})});
    rows[4]=rowCells(rows[4],['Total Number of Days:',String(Number(traveler.fullDays)+Number(traveler.halfDays))]);
-   rows[5]=rowCells(rows[5],['Mode of Travel:',trip.mode||'Road']);
+   rows[5]=rowCells(rows[5],['Mode of Travel:',new Set(calculations.travelRows.map(r=>r.method)).size>1?'Mixed (Air / Other)':(calculations.travelRows[0]?.modeLabel||trip.mode||'Road')]);
    rows[6]=rowCells(rows[6],['Total DSA',currency(calculations.dsa)]);
    rows[7]=rowCells(rows[7],['Total Travel Allowance',currency(calculations.ta)+'/-']);
    rows[8]=rowCells(rows[8],['Total Amount Claim',currency(calculations.total)+'/-']);
