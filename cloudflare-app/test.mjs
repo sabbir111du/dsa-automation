@@ -45,8 +45,9 @@ if(!seedSQL.includes('employee_directory_setup')||!seedSQL.includes('pg_advisory
 for(const element of ['id="employeeEditor"','id="editEmployeeForm"','data-edit-employee','office_name','seed_initial_employee_directory'])if(!html.includes(element))throw Error('Missing editable directory component '+element);
 console.log('PASS: exactly 18 approved seed records, excluded name absent, editing UI and one-time import available');
 
-for(const marker of ['iBAS++ Distance Matrix','class="distanceVerified"','distance_verified:true','distance_source:\'iBAS++ Distance Matrix\''])if(!html.includes(marker))throw Error('iBAS distance integration missing '+marker);
-console.log('PASS: iBAS distance citation, explicit verification and distance provenance');
+for(const marker of ['iBAS++ Distance Matrix','distance_verified:false','distance_source:\'manual (iBAS reference available)\''])if(!html.includes(marker))throw Error('Distance reference missing '+marker);
+if(html.includes('distanceVerified')||html.includes('I checked this distance'))throw Error('Mandatory iBAS confirmation must be removed');
+console.log('PASS: optional iBAS distance link without a checkbox');
 
 for(const [input,expected] of [['16:45','04:45PM'],['09:00','09:00AM'],['00:00','12:00AM'],['12:00','12:00PM'],['23:59','11:59PM'],['04:05:00','04:05AM'],['18:40:00','06:40PM'],['04:45PM','04:45PM']]){
  if(worker.time12(input)!==expected)throw Error('Incorrect 12h time: '+input);
@@ -60,3 +61,20 @@ const forged={...trip,legs:trip.legs.map(x=>({...x,kmRate:9999}))};
 if(worker.calc(forged,people[0]).total!==worker.calc(trip,people[0]).total)throw Error('Manually supplied rate affected calculation');
 try{worker.calc(trip,{...people[0],travelBand:null});throw Error('Invalid employee category accepted')}catch(e){if(e.message==='Invalid employee category accepted')throw e}
 console.log('PASS: category-only rates and 12-hour Word times');
+
+const dataListMatch=html.match(/<datalist id="bdDistricts">([\s\S]*?)<\/datalist>/);
+if(!dataListMatch)throw Error('Searchable district datalist missing');
+const districtList=[...dataListMatch[1].matchAll(/<option value="([^"]+)"/g)].map(m=>m[1]);
+if(districtList.length!==64||new Set(districtList).size!==64)throw Error('Expected 64 unique Bangladesh districts, found '+districtList.length);
+for(const district of ['Dhaka','Chattogram','Cumilla',"Cox's Bazar",'Barishal','Mymensingh','Jashore','Panchagarh','Chuadanga']){
+ if(!districtList.includes(district))throw Error('Expected Bangladesh district '+district);
+}
+if(!html.includes("list:'bdDistricts'")||!html.includes('autocomplete='))throw Error('Location text input does not link to datalist');
+if(html.includes("class=\\\"distanceVerified\\\""))throw Error('Distance checkbox unexpectedly present');
+if(!html.includes("approved_full_days??1"))throw Error('Default full day must be one');
+if(!html.includes("ta_multiplier??1"))throw Error('Default TA multiplier must be one');
+if(!html.includes("function orderedEmployees(list)")||!html.includes("employee-hierarchy"))throw Error('Employee hierarchy ordering missing');
+if(!html.includes("function isActiveTrip(t)")||!html.includes("const activeTrips=trips.filter(isActiveTrip)"))throw Error('15-day active trip limit missing');
+const retention=await readFile(new URL('../supabase/trip_retention_15_days.sql',import.meta.url),'utf8');
+for(const sqlPart of ["interval '15 days'","t.status = 'draft'","not exists (select 1 from public.dsa_claims","cron.schedule"])if(!retention.includes(sqlPart))throw Error('Retention safety rule missing '+sqlPart);
+console.log('PASS: 64 searchable editable districts, no iBAS checkbox, default 1 day, hierarchy, safe retention');
