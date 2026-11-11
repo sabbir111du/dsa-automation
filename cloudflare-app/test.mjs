@@ -88,3 +88,10 @@ console.log('PASS: search, preview and preserved traveler selections');
 
 for(const marker of ['data-duplicate','function duplicateTrip(id)','form.elements.title.value=original.title'])if(!html.includes(marker))throw Error('Trip duplication missing '+marker);
 console.log('PASS: duplicate trip creates separate editable draft');
+
+for(const marker of ['Travel claims, made simpler.','class="process"','class="hero"','data-go="trips"','class="page-kicker"','prefers-reduced-motion','Review and generate','id="claimPreview"','id="employeeSearch"']){
+ if(!html.includes(marker))throw Error('Workspace 2.0 missing '+marker);
+}
+const originalTemplateBytes=await readFile(new URL('../assets/original_template.docx',import.meta.url));
+if(originalTemplateBytes.length<1000)throw Error('Official template unavailable');
+console.log('PASS: Workspace 2.0 UI renders with existing document workflow and template');
