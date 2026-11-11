@@ -52,6 +52,9 @@ jobs:
           grep -q 'class="hero"' app.html
           grep -q 'function duplicateTrip(id)' app.html
           grep -q 'function updateClaimPreview()' app.html
+          grep -q 'class="leg-method"' app.html
+          grep -q 'name="leg_mode"' app.html
+          grep -q 'leg_modes:p.legModes' app.html
           grep -q 'isActiveTrip' app.html
           if grep -q 'distanceVerified' app.html; then echo 'Old mandatory distance confirmation still present'; exit 1; fi
           if grep -q 'Rate / KM BDT' app.html; then echo 'Manual travel rate field still present'; exit 1; fi
