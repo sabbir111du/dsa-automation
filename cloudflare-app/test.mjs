@@ -85,3 +85,6 @@ for(const marker of ['id="employeeSearch"','id="employeeCategory"','id="traveler
 if(html.includes('id?visible.map(p=>'))throw Error('Traveler filter would reset selection');
 if(!html.includes("id?orderedEmployees(employees).map(p=>"))throw Error('Traveler selection rows must remain mounted');
 console.log('PASS: search, preview and preserved traveler selections');
+
+for(const marker of ['data-duplicate','function duplicateTrip(id)','form.elements.title.value=original.title'])if(!html.includes(marker))throw Error('Trip duplication missing '+marker);
+console.log('PASS: duplicate trip creates separate editable draft');
