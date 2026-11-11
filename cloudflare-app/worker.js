@@ -26,9 +26,9 @@ function date(s){if(!/^\d{4}-\d\d-\d\d$/.test(s||''))throw Error('Expected YYYY-
 function time12(value){
  if(value==null||String(value).trim()==='')return '';
  const raw=String(value).trim();
- const twelve=/^(0?[1-9]|1[0-2]):([0-5]\\d)\\s*(AM|PM)$/i.exec(raw);
+ const twelve=/^(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/i.exec(raw);
  if(twelve)return String(Number(twelve[1])).padStart(2,'0')+':'+twelve[2]+twelve[3].toUpperCase();
- const match=/^([01]\\d|2[0-3]):([0-5]\\d)(?::[0-5]\\d(?:\\.\\d+)?)?$/.exec(raw);
+ const match=/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d(?:\.\d+)?)?$/.exec(raw);
  if(!match)throw Error('Invalid time: expected HH:mm or HH:mm:ss');
  const hour=Number(match[1]);
  return String(hour%12||12).padStart(2,'0')+':'+match[2]+(hour>=12?'PM':'AM');
