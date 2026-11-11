@@ -47,6 +47,9 @@ jobs:
           grep -q 'id="employeeCategory"' app.html
           grep -q 'id="travelerSearch"' app.html
           grep -q 'id="claimPreview"' app.html
+          grep -q 'Travel claims, made simpler.' app.html
+          grep -q 'class="process"' app.html
+          grep -q 'class="hero"' app.html
           grep -q 'function duplicateTrip(id)' app.html
           grep -q 'function updateClaimPreview()' app.html
           grep -q 'isActiveTrip' app.html
