@@ -78,3 +78,13 @@ if(!html.includes("function isActiveTrip(t)")||!html.includes("const activeTrips
 const retention=await readFile(new URL('../supabase/trip_retention_15_days.sql',import.meta.url),'utf8');
 for(const sqlPart of ["interval '15 days'","t.status = 'draft'","not exists (select 1 from public.dsa_claims","cron.schedule"])if(!retention.includes(sqlPart))throw Error('Retention safety rule missing '+sqlPart);
 console.log('PASS: 64 searchable editable districts, no iBAS checkbox, default 1 day, hierarchy, safe retention');
+
+for(const marker of ['id="employeeSearch"','id="employeeCategory"','id="travelerSearch"','id="selectVisibleTravelers"','id="clearVisibleTravelers"','id="claimPreview"','function updateClaimPreview()','function filterTravelerRows()','const previouslySelectedTrip=','Review &amp; Generate DOCX ZIP']){
+ if(!html.includes(marker))throw Error('Missing UX improvement: '+marker);
+}
+if(html.includes('id?visible.map(p=>'))throw Error('Traveler filter would reset selection');
+if(!html.includes("id?orderedEmployees(employees).map(p=>"))throw Error('Traveler selection rows must remain mounted');
+console.log('PASS: search, preview and preserved traveler selections');
+
+for(const marker of ['data-duplicate','function duplicateTrip(id)','form.elements.title.value=original.title'])if(!html.includes(marker))throw Error('Trip duplication missing '+marker);
+console.log('PASS: duplicate trip creates separate editable draft');
