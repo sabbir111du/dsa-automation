@@ -111,5 +111,5 @@ const mixedEntry=worker.unpackZIP(mixedDoc.bytes).find(e=>e.name==='word/documen
 const mixedXML=(mixedEntry.method===8?inflateRawSync(mixedEntry.data):Buffer.from(mixedEntry.data)).toString('utf8');
 for(const expected of ['Mixed (Air / Other)','Air','Road','30.00','18.00','23916'])if(!mixedXML.includes(expected))throw Error('Mixed-method Word document missing '+expected);
 try{worker.calc(mixedTrip,{...people[0],travelBand:6,legModes:{'leg-one':'air','leg-two':'other'}});throw Error('Unapproved air travel was accepted')}catch(e){if(e.message==='Unapproved air travel was accepted')throw e}
-if(!html.includes('class="leg-method"')||!html.includes('leg_modes:p.legModes')||!html.includes("name=\\"leg_mode\\""))throw Error('Missing per-employee or per-leg method selection/persistence');
+if(!html.includes('class="leg-method"')||!html.includes('leg_modes:p.legModes')||!html.includes('name="leg_mode"'))throw Error('Missing per-employee or per-leg method selection/persistence');
 console.log('PASS: mixed outbound Air and return Road rates, reverse journey, DOCX and entitlement checks');
