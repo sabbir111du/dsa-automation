@@ -147,6 +147,7 @@ const previouslySelectedTrip=$('genTrip').value;
 $('genTrip').innerHTML='<option value="">Choose a trip...</option>'+activeTrips.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.title)+' — '+esc(t.destination)+'</option>').join('');
 if(activeTrips.some(t=>t.id===previouslySelectedTrip))$('genTrip').value=previouslySelectedTrip;
 document.querySelectorAll('[data-trip]').forEach(b=>b.onclick=()=>{page('generate');$('genTrip').value=b.dataset.trip;renderTravelers()});
+document.querySelectorAll('[data-duplicate]').forEach(b=>b.onclick=()=>duplicateTrip(b.dataset.duplicate));
 $('claimRows').innerHTML=claims.map(c=>{const t=trips.find(t=>t.id===c.trip_id),e=employees.find(e=>e.id===c.employee_id);return '<tr><td>'+esc(t?.title||'Archived trip')+'</td><td>'+esc(e?.full_name||'Archived employee')+'</td><td>'+esc(c.dsa_amount)+'</td><td>'+esc(c.travel_amount)+'</td><td><b>'+esc(c.total_amount)+'</b></td></tr>'}).join('')||'<tr><td colspan="5">No claims recorded</td></tr>';
 renderTravelers();}
 $('employeeSearch').addEventListener('input',render);
